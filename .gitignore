@@ -1,0 +1,8 @@
+videos
+# virtualenv
+.venv*
+venv*/
+ENV*/
+
+runs
+

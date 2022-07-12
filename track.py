@@ -43,7 +43,8 @@ first_time = 0
 penta = np.array([[0,0]], np.int32)
 
 def detect(opt):
-    global penta
+    
+    global penta    
     out, source, yolo_model, deep_sort_model, show_vid, save_vid, save_txt, imgsz, evaluate, half, project, name, exist_ok= \
         opt.output, opt.source, opt.yolo_model, opt.deep_sort_model, opt.show_vid, opt.save_vid, \
         opt.save_txt, opt.imgsz, opt.evaluate, opt.half, opt.project, opt.name, opt.exist_ok
@@ -185,7 +186,10 @@ def detect(opt):
                         #if id == 22:
                         cntr= (int(bboxes[0]+(bboxes[2]-bboxes[0])/2) , int(bboxes[1]+(bboxes[3]-bboxes[1])/2))
                         penta = np.append(penta, [cntr],axis=0)
+                        #if len(penta) == 2:
+                        #    penta = np.delete(penta, (0), axis=0)
 
+                            
                         if save_txt:
                             # to MOT format
                             bbox_left = output[0]
@@ -218,7 +222,10 @@ def detect(opt):
 
                 
                 cv2.line(im0, start_point, end_point, color, thickness=2)
-                cv2.polylines(im0, [penta], False, (140,120,255),1)
+                print("---------------len",penta.size)
+                
+                #if len(penta) > 0:
+                #    cv2.polylines(im0, [penta], False, (140,120,255),1)
 
                 thickness = 3
                 org = (150, 150)
@@ -272,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('--source', type=str, default='videos/Traffic.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[480], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.4, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')

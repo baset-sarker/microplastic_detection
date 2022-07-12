@@ -37,3 +37,8 @@ flake8
 yapf
 isort==4.3.21
 imageio
+
+
+#for raspi4, install torch and torch vision from downloaed foler
+# numpy == 1.20.3
+# 

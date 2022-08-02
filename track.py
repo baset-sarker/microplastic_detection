@@ -1,5 +1,7 @@
 # limit the number of cpus used by high performance libraries
 import os
+
+from importlib_metadata import NullFinder
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -30,6 +32,7 @@ from yolov5.utils.plots import Annotator, colors
 from deep_sort.utils.parser import get_config
 from deep_sort.deep_sort import DeepSort
 import numpy as np
+from datetime import datetime
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # yolov5 deepsort root directory
@@ -40,6 +43,11 @@ count = 0
 data = []
 
 first_time = 0
+first_time_cross=0
+
+detection_first_time = False
+detection_cross_time = False
+
 penta = np.array([[0,0]], np.int32)
 
 def detect(opt):
@@ -50,6 +58,8 @@ def detect(opt):
         opt.save_txt, opt.imgsz, opt.evaluate, opt.half, opt.project, opt.name, opt.exist_ok
     webcam = source == '0' or source.startswith(
         'rtsp') or source.startswith('http') or source.endswith('.txt')
+    #webcam = source.isnumeric() or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
+
 
     # initialize deepsort
     cfg = get_config()
@@ -174,7 +184,7 @@ def detect(opt):
                     for j, (output, conf) in enumerate(zip(outputs, confs)):
                         
                         bboxes = output[0:4]
-                        print(outputs)
+                        #print(outputs)
                         id = output[4]
                         cls = output[5]
                         #count
@@ -222,7 +232,7 @@ def detect(opt):
 
                 
                 cv2.line(im0, start_point, end_point, color, thickness=2)
-                print("---------------len",penta.size)
+    
                 
                 #if len(penta) > 0:
                 #    cv2.polylines(im0, [penta], False, (140,120,255),1)
@@ -263,9 +273,19 @@ def detect(opt):
             os.system('open ' + save_path)
 
 def count_obj(box,w,h,id):
-    global count,data,first_time,penta
+    global count,data,first_time,penta,first_time,first_time_cross,detection_first_time,detection_cross_time
     center_coordinates = (int(box[0]+(box[2]-box[0])/2) , int(box[1]+(box[3]-box[1])/2))
+
+    if first_time == 0:
+        first_time = 1
+        detection_first_time = datetime.now()
+
     if int(box[0]+(box[2]-box[0])/2) > int(w/2):
+        if first_time_cross == 0:
+            first_time_cross = 1
+            detection_cross_time = datetime.now()
+            diff = detection_cross_time - detection_first_time
+            print("time required = ",diff.seconds)
         if  id not in data:
             count += 1
             data.append(id)

@@ -1,4 +1,5 @@
 # limit the number of cpus used by high performance libraries
+from glob import glob
 import os
 
 from importlib_metadata import NullFinder
@@ -47,12 +48,13 @@ first_time_cross=0
 
 detection_first_time = False
 detection_cross_time = False
+count_save_path=""
 
 penta = np.array([[0,0]], np.int32)
 
 def detect(opt):
     
-    global penta    
+    global penta,count_save_path    
     out, source, yolo_model, deep_sort_model, show_vid, save_vid, save_txt, imgsz, evaluate, half, project, name, exist_ok= \
         opt.output, opt.source, opt.yolo_model, opt.deep_sort_model, opt.show_vid, opt.save_vid, \
         opt.save_txt, opt.imgsz, opt.evaluate, opt.half, opt.project, opt.name, opt.exist_ok
@@ -120,6 +122,7 @@ def detect(opt):
     # extract what is in between the last '/' and last '.'
     txt_file_name = source.split('/')[-1].split('.')[0]
     txt_path = str(Path(save_dir)) + '/' + txt_file_name + '.txt'
+    count_save_path = str(Path(save_dir)) + '/count' + txt_file_name + '.txt'
 
     if pt and device.type != 'cpu':
         model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.model.parameters())))  # warmup
@@ -207,6 +210,7 @@ def detect(opt):
                             bbox_w = output[2] - output[0]
                             bbox_h = output[3] - output[1]
                             # Write MOT compliant results to file
+                            print("text path",txt_path)
                             with open(txt_path, 'a') as f:
                                 f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
                                                                bbox_top, bbox_w, bbox_h, -1, -1, -1, -1))
@@ -272,6 +276,13 @@ def detect(opt):
         if platform == 'darwin':  # MacOS
             os.system('open ' + save_path)
 
+def save_data_on_file():
+    global count_save_path,count
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(count_save_path, 'a') as f:
+        f.write(('%s ' * 2 + '\n') % (now,count))
+
+
 def count_obj(box,w,h,id):
     global count,data,first_time,penta,first_time,first_time_cross,detection_first_time,detection_cross_time
     center_coordinates = (int(box[0]+(box[2]-box[0])/2) , int(box[1]+(box[3]-box[1])/2))
@@ -289,6 +300,7 @@ def count_obj(box,w,h,id):
         if  id not in data:
             count += 1
             data.append(id)
+            save_data_on_file()
 
 
 if __name__ == '__main__':

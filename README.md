@@ -3,6 +3,7 @@
 # python track.py --source vid1.mp4 
 
 
+# https://abarry.org/how-to-use-a-gopro-hero-8s-firmware-webcam-mode-in-linux/
 
 
 <div align="center">

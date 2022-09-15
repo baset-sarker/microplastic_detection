@@ -3,6 +3,7 @@ videos
 .venv*
 venv*/
 ENV*/
+images
 
 runs
 stream.txt

@@ -291,7 +291,7 @@ def count_obj(box,w,h,id):
         first_time = 1
         detection_first_time = datetime.now()
 
-    if int(box[0]+(box[2]-box[0])/2) < int(w/2):
+    if int(box[0]+(box[2]-box[0])/2) > int(w/2):
         if first_time_cross == 0:
             first_time_cross = 1
             detection_cross_time = datetime.now()

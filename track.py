@@ -52,6 +52,18 @@ count_save_path=""
 
 penta = np.array([[0,0]], np.int32)
 
+def calculate_framerate(frame_rate_calc,t1,freq):
+    print('FPS: {0:.2f}'.format(frame_rate_calc))
+    # Calculate framerate
+    t2 = cv2.getTickCount()
+    time1 = (t2-t1)/freq
+    frame_rate_calc= 1/time1
+    return frame_rate_calc
+
+#freq = cv2.getTickFrequency()
+# inside while loop   t1 = cv2.getTickCount()
+# frame_rate_calc = calculate_framerate(frame_rate_calc,t1,freq)
+
 def detect(opt):
     
     global penta,count_save_path    

@@ -12,13 +12,13 @@ while True:
         print("Can't receive frame (stream end?). Exiting ...")
         break
     # Our operations on the frame come here
-    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+   # gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     # Display the resulting frame
-    cv.imshow('frame', gray)
+    cv.imshow('frame', frame)
     from datetime import datetime
     file_name = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')
     
-    cv.imwrite("images/"+file_name+'.jpg', gray)
+    cv.imwrite("images/"+file_name+'.jpg', frame)
     if cv.waitKey(1) == ord('q'):
         break
 # When everything done, release the capture

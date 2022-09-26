@@ -228,6 +228,8 @@ def detect(opt):
                                                                bbox_top, bbox_w, bbox_h, -1, -1, -1, -1))
 
                 LOGGER.info(f'{s}Done. YOLO:({t3 - t2:.3f}s), DeepSort:({t5 - t4:.3f}s)')
+                fpsm = 1 / (t3 - t2)
+                LOGGER.info(f'FPS: {fpsm:.1f}')
 
             else:
                 deepsort.increment_ages()
@@ -318,7 +320,7 @@ def count_obj(box,w,h,id):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #parser.add_argument('--yolo_model', nargs='+', type=str, default='yolov5n.pt', help='model.pt path(s)')
-    parser.add_argument('--yolo_model', nargs='+', type=str, default='model/best.pt', help='model.pt path(s)')
+    parser.add_argument('--yolo_model', nargs='+', type=str, default='model/best_1.pt', help='model.pt path(s)')
     parser.add_argument('--deep_sort_model', type=str, default='osnet_x0_25')
     parser.add_argument('--source', type=str, default='videos/Traffic.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder

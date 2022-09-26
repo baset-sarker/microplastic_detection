@@ -164,6 +164,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
             # Print time (inference-only)
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
+            fpsm = 1 / (t3 - t2)
+            LOGGER.info(f'FPS: {fpsm:.1f}')
 
             # Stream results
             im0 = annotator.result()

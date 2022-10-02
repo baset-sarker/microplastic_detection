@@ -1,6 +1,8 @@
 # limit the number of cpus used by high performance libraries
+#22cm
 from glob import glob
 import os
+from re import T
 
 from importlib_metadata import NullFinder
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -50,7 +52,15 @@ detection_first_time = False
 detection_cross_time = False
 count_save_path=""
 
-penta = np.array([[0,0]], np.int32)
+no_detection_start_time = time_sync()
+
+poly_line = np.array([[0,0]], np.int32)
+poly_line_dict = {}
+
+#velocity variables
+velocity_time_dic = {}
+velocity_line_distance = 100
+velocity_actual_distnace = 2.54
 
 def calculate_framerate(frame_rate_calc,t1,freq):
     print('FPS: {0:.2f}'.format(frame_rate_calc))
@@ -66,7 +76,7 @@ def calculate_framerate(frame_rate_calc,t1,freq):
 
 def detect(opt):
     
-    global penta,count_save_path    
+    global poly_line,count_save_path,poly_line_dict,no_detection_start_time
     out, source, yolo_model, deep_sort_model, show_vid, save_vid, save_txt, imgsz, evaluate, half, project, name, exist_ok= \
         opt.output, opt.source, opt.yolo_model, opt.deep_sort_model, opt.show_vid, opt.save_vid, \
         opt.save_txt, opt.imgsz, opt.evaluate, opt.half, opt.project, opt.name, opt.exist_ok
@@ -140,6 +150,11 @@ def detect(opt):
         model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.model.parameters())))  # warmup
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     for frame_idx, (path, img, im0s, vid_cap, s) in enumerate(dataset):
+
+        # remove polyline dict if no item in frame for 5 seconds
+        if time_sync()-no_detection_start_time > 5:
+            poly_line_dict={}
+
         t1 = time_sync()
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -161,6 +176,7 @@ def detect(opt):
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
+            
             seen += 1
             if webcam:  # batch_size >= 1
                 p, im0, _ = path[i], im0s[i].copy(), dataset.count
@@ -196,6 +212,7 @@ def detect(opt):
 
                 # draw boxes for visualization
                 if len(outputs) > 0:
+                    no_detection_start_time = time_sync()
                     for j, (output, conf) in enumerate(zip(outputs, confs)):
                         
                         bboxes = output[0:4]
@@ -203,17 +220,24 @@ def detect(opt):
                         id = output[4]
                         cls = output[5]
                         #count
-                        count_obj(bboxes,w,h,id)
+                        v = count_and_calculate_velocity(bboxes,w,h,id,t1)
                         c = int(cls)  # integer class
-                        label = f'{id} {names[c]} {conf:.2f}'
+                        label = f'{id} {names[c]} {conf:.2f} V:{v}'
                         annotator.box_label(bboxes, label, color=colors(c, True))
 
                         #if id == 22:
                         cntr= (int(bboxes[0]+(bboxes[2]-bboxes[0])/2) , int(bboxes[1]+(bboxes[3]-bboxes[1])/2))
-                        penta = np.append(penta, [cntr],axis=0)
-                        #if len(penta) == 2:
-                        #    penta = np.delete(penta, (0), axis=0)
+                        poly_line = np.append(poly_line, [cntr],axis=0)
+                        
+                        #poly_line_dict[id].append(np.append())
+                        
+                        #if len(poly_line) == 2:
+                        #    poly_line = np.delete(poly_line, (0), axis=0)
 
+                        if id not in poly_line_dict:
+                            poly_line_dict[id] = np.array([cntr], np.int32)
+                        else:
+                            poly_line_dict[id] = np.append(poly_line_dict[id], [cntr],axis=0)
                             
                         if save_txt:
                             # to MOT format
@@ -244,21 +268,33 @@ def detect(opt):
                 
                 #start_point = (0, h-350)
                 #end_point = (w, h-350)
+                 
+                #velocity calculation line 
+                v_start_point = (int(w/2)-velocity_line_distance, 200)
+                v_end_point = (int(w/2)-velocity_line_distance, h-200)
 
+                cv2.line(im0, v_start_point, v_end_point, color, thickness=2) 
+
+                #middle line
                 start_point = (int(w/2), 0)
                 end_point = (int(w/2), h)
-
-                
                 cv2.line(im0, start_point, end_point, color, thickness=2)
     
                 
-                #if len(penta) > 0:
-                #    cv2.polylines(im0, [penta], False, (140,120,255),1)
+                #if len(poly_line) > 0:
+                #    cv2.polylines(im0, [poly_line], False, (140,120,255),1)
+
+
+                for key, value in poly_line_dict.items():
+                    if len(poly_line_dict[key]) > 0:
+                        cv2.polylines(im0, [poly_line_dict[key]], False, (140,120,255),1)
+
 
                 thickness = 3
-                org = (150, 150)
+                #org = (150, 150)
+                org = (50, 70)
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                fontScale = 3
+                fontScale = 2
                 cv2.putText(im0, str(count), org, font, 
                    fontScale, color, thickness, cv2.LINE_AA)
                 cv2.imshow(str(p), im0)
@@ -290,31 +326,54 @@ def detect(opt):
         if platform == 'darwin':  # MacOS
             os.system('open ' + save_path)
 
-def save_data_on_file():
+def save_data_on_file(id,velocity):
     global count_save_path,count
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(count_save_path, 'a') as f:
-        f.write(('%s ' * 2 + '\n') % (now,count))
+        f.write(('%s ' * 4 + '\n') % (now,count,id,velocity))
+        # f.write(('%s ' * 2 + '\n') % (now,count))
 
 
-def count_obj(box,w,h,id):
-    global count,data,first_time,penta,first_time,first_time_cross,detection_first_time,detection_cross_time
+def count_and_calculate_velocity(box,w,h,id,t1):
+    velocity = 0
+    global count,data,first_time,poly_line,first_time,first_time_cross
+    global detection_first_time,detection_cross_time,velocity_time_dic,velocity_actual_distnace,velocity_line_distance
     center_coordinates = (int(box[0]+(box[2]-box[0])/2) , int(box[1]+(box[3]-box[1])/2))
 
     if first_time == 0:
         first_time = 1
         detection_first_time = datetime.now()
 
-    if int(box[0]+(box[2]-box[0])/2) > int(w/2):
+    center_coordinate_x = center_coordinates[0]
+
+    if center_coordinate_x > (int(w/2) - velocity_line_distance) and center_coordinate_x < int(w/2):
+        #check key not in dict
+        if id not in velocity_time_dic:
+            velocity_time_dic[id] = t1
+
+    if center_coordinate_x > int(w/2):
         if first_time_cross == 0:
             first_time_cross = 1
             detection_cross_time = datetime.now()
             diff = detection_cross_time - detection_first_time
             print("time required = ",diff.seconds)
+            
         if  id not in data:
             count += 1
             data.append(id)
-            save_data_on_file()
+            
+
+            if id in velocity_time_dic:
+                time_diff = t1 - velocity_time_dic[id]
+                velocity = round(velocity_actual_distnace/time_diff,2)
+                print("velocity = ",velocity)
+          
+            save_data_on_file(id,velocity)
+
+        #calculate velocity
+            
+
+    return velocity
 
 
 if __name__ == '__main__':

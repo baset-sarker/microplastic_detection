@@ -3,7 +3,7 @@ import cv2
    
 # Create an object to read 
 # from camera
-video = cv2.VideoCapture(2)
+video = cv2.VideoCapture(0)
    
 # We need to check if camera
 # is opened previously or not
@@ -22,9 +22,9 @@ size = (frame_width, frame_height)
 # is stored in 'filename.avi' file.
 from datetime import datetime
 file_name = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')
-result = cv2.VideoWriter('videos/'+file_name+'.mp4', 
+result = cv2.VideoWriter('videos/'+"test"+file_name+'.mp4', 
                          cv2.VideoWriter_fourcc(*'MJPG'),
-                         10, size)
+                         30, size)
     
 while(True):
     ret, frame = video.read()
